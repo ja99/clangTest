@@ -24,6 +24,9 @@ def get_comment(node:clang.cindex.Cursor)->str:
     comment = node.raw_comment or ""
     return comment.strip().replace('\n', ' ')
 
+def get_ranges(node:clang.cindex.Cursor)->((int, int), (int, int)):
+    return ((node.extent.start.line, node.extent.end.line), (node.extent.start.column, node.extent.end.column))
+
 def parse_field(field_node:clang.cindex.Cursor)->CField:
     name = field_node.spelling
     type_name = field_node.type.spelling
@@ -35,8 +38,7 @@ def parse_field(field_node:clang.cindex.Cursor)->CField:
 
     comment = get_comment(field_node)
 
-    line_range = (field_node.extent.start.line, field_node.extent.end.line)
-    column_range = (field_node.extent.start.column, field_node.extent.end.column)
+    line_range, column_range = get_ranges(field_node)
 
     return CField(name=name, type=type_name, n_bits=n_bits, comment=comment, line_range=line_range, column_range=column_range)
 
@@ -50,8 +52,7 @@ def parse_struct(struct_node:clang.cindex.Cursor)->CStruct:
 
     comment = get_comment(struct_node)
 
-    line_range = (struct_node.extent.start.line, struct_node.extent.end.line)
-    column_range = (struct_node.extent.start.column, struct_node.extent.end.column)
+    line_range, column_range = get_ranges(struct_node)
 
     return CStruct(name=struct_name, fields=fields, comment=comment, line_range=line_range, column_range=column_range)
 
