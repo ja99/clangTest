@@ -1,8 +1,12 @@
+import json
 from pprint import pprint
 
 import clang.cindex
 from dataclasses import dataclass
 from typing import List, Optional
+import tomllib
+import tomli_w
+import tomlkit
 
 
 @dataclass
@@ -14,6 +18,16 @@ class CField:
     line_range: (int, int)
     column_range: (int, int)
 
+    def __dict__(self):
+        return {
+            "name": self.name,
+            "type": self.type,
+            "n_bits": self.n_bits if self.n_bits else -1,
+            "comments": self.comments,
+            "line_range": self.line_range,
+            "column_range": self.column_range
+        }
+
 
 @dataclass
 class CStruct:
@@ -22,6 +36,15 @@ class CStruct:
     comments: list[str]
     line_range: (int, int)
     column_range: (int, int)
+
+    def __dict__(self):
+        return {
+            "name": self.name,
+            "fields": [field.__dict__() for field in self.fields],
+            "comments": self.comments,
+            "line_range": self.line_range,
+            "column_range": self.column_range
+        }
 
 
 @dataclass
@@ -118,14 +141,7 @@ if __name__ == "__main__":
     structs = associate_comments(structs, comments)
 
     for struct in structs:
-        print(f"Struct: {struct.name}")
-        print(f"Comments: {struct.comments}")
-        print(f"Line Range: {struct.line_range}")
-        print(f"Column Range: {struct.column_range}")
-        for field in struct.fields:
-            print(f"  Field Name: {field.name}")
-            print(f"    Type: {field.type}")
-            print(f"    Bits: {field.n_bits}")
-            print(f"    Comments: {field.comments}")
-            print(f"    Line Range: {field.line_range}")
-            print(f"    Column Range: {field.column_range}")
+        s = json.dumps(struct.__dict__())
+        # pprint(s)
+        s = tomlkit.dumps(struct.__dict__())
+        print(s)
