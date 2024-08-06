@@ -10,7 +10,7 @@ class CField:
     name: str
     type: str
     n_bits: Optional[int]
-    comment: str
+    comments: list[str]
     line_range: (int, int)
     column_range: (int, int)
 
@@ -19,7 +19,7 @@ class CField:
 class CStruct:
     name: str
     fields: List[CField]
-    comment: str
+    comments: list[str]
     line_range: (int, int)
     column_range: (int, int)
 
@@ -47,9 +47,24 @@ def get_comments(file_path:str) -> list[CComment]:
             comments.append(comment)
     return comments
 
+def associate_comments(structs: list[CStruct], comments: list[CComment]) -> list[CStruct]:
+    for struct in structs:
+        for comment in comments:
+            # check if comment is immediately before the struct
+            if comment.line_range[1] + 1 == struct.line_range[0]:
+                struct.comments.append(comment.comment)
+
+            # check if comment is within range of field
+            for field in struct.fields:
+                if comment.line_range[0] >= field.line_range[0] and comment.line_range[1] <= field.line_range[1]:
+                    field.comments.append(comment.comment)
+
+    return structs
+
 
 def get_ranges(node: clang.cindex.Cursor) -> ((int, int), (int, int)):
-    return ((node.extent.start.line, node.extent.end.line), (node.extent.start.column, node.extent.end.column))
+    return ((node.extent.start.line, node.extent.end.line),
+            (node.extent.start.column, node.extent.end.column))
 
 
 def parse_field(field_node: clang.cindex.Cursor) -> CField:
@@ -61,11 +76,9 @@ def parse_field(field_node: clang.cindex.Cursor) -> CField:
     if field_node.get_bitfield_width() > 0:
         n_bits = field_node.get_bitfield_width()
 
-    comment = get_comment(field_node)
-
     line_range, column_range = get_ranges(field_node)
 
-    return CField(name=name, type=type_name, n_bits=n_bits, comment=comment, line_range=line_range,
+    return CField(name=name, type=type_name, n_bits=n_bits, comments=[], line_range=line_range,
                   column_range=column_range)
 
 
@@ -77,11 +90,10 @@ def parse_struct(struct_node: clang.cindex.Cursor) -> CStruct:
         if child.kind == clang.cindex.CursorKind.FIELD_DECL:
             fields.append(parse_field(child))
 
-    comment = get_comment(struct_node)
 
     line_range, column_range = get_ranges(struct_node)
 
-    return CStruct(name=struct_name, fields=fields, comment=comment, line_range=line_range, column_range=column_range)
+    return CStruct(name=struct_name, fields=fields, comments=[], line_range=line_range, column_range=column_range)
 
 
 def parse_header_file(filename: str) -> list[CStruct]:
@@ -101,21 +113,19 @@ if __name__ == "__main__":
     # Replace with your actual header file path
     header_file_path = "test_cases/example2.h"
     comments = get_comments(header_file_path)
-    pprint(comments)
-    exit()
-
 
     structs = parse_header_file(header_file_path)
+    structs = associate_comments(structs, comments)
 
     for struct in structs:
         print(f"Struct: {struct.name}")
-        print(f"Comment: {struct.comment}")
+        print(f"Comments: {struct.comments}")
         print(f"Line Range: {struct.line_range}")
         print(f"Column Range: {struct.column_range}")
         for field in struct.fields:
             print(f"  Field Name: {field.name}")
             print(f"    Type: {field.type}")
             print(f"    Bits: {field.n_bits}")
-            print(f"    Comment: {field.comment}")
+            print(f"    Comments: {field.comments}")
             print(f"    Line Range: {field.line_range}")
             print(f"    Column Range: {field.column_range}")
