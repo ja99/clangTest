@@ -8,12 +8,17 @@ class CField:
     type: str
     n_bits: Optional[int]
     comment: str
+    line_range: (int, int)
+    column_range: (int, int)
+
 
 @dataclass
 class CStruct:
     name: str
     fields: List[CField]
     comment: str
+    line_range: (int, int)
+    column_range: (int, int)
 
 def get_comment(node:clang.cindex.Cursor)->str:
     comment = node.raw_comment or ""
@@ -30,7 +35,10 @@ def parse_field(field_node:clang.cindex.Cursor)->CField:
 
     comment = get_comment(field_node)
 
-    return CField(name=name, type=type_name, n_bits=n_bits, comment=comment)
+    line_range = (field_node.extent.start.line, field_node.extent.end.line)
+    column_range = (field_node.extent.start.column, field_node.extent.end.column)
+
+    return CField(name=name, type=type_name, n_bits=n_bits, comment=comment, line_range=line_range, column_range=column_range)
 
 def parse_struct(struct_node:clang.cindex.Cursor)->CStruct:
     struct_name = struct_node.spelling
@@ -42,7 +50,10 @@ def parse_struct(struct_node:clang.cindex.Cursor)->CStruct:
 
     comment = get_comment(struct_node)
 
-    return CStruct(name=struct_name, fields=fields, comment=comment)
+    line_range = (struct_node.extent.start.line, struct_node.extent.end.line)
+    column_range = (struct_node.extent.start.column, struct_node.extent.end.column)
+
+    return CStruct(name=struct_name, fields=fields, comment=comment, line_range=line_range, column_range=column_range)
 
 def parse_header_file(filename:str)->list[CStruct]:
     index = clang.cindex.Index.create()
@@ -64,8 +75,12 @@ if __name__ == "__main__":
     for struct in structs:
         print(f"Struct: {struct.name}")
         print(f"Comment: {struct.comment}")
+        print(f"Line Range: {struct.line_range}")
+        print(f"Column Range: {struct.column_range}")
         for field in struct.fields:
             print(f"  Field Name: {field.name}")
             print(f"    Type: {field.type}")
             print(f"    Bits: {field.n_bits}")
             print(f"    Comment: {field.comment}")
+            print(f"    Line Range: {field.line_range}")
+            print(f"    Column Range: {field.column_range}")
