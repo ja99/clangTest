@@ -65,7 +65,7 @@ if __name__ == "__main__":
         print(f"Struct: {struct.name}")
         print(f"Comment: {struct.comment}")
         for field in struct.fields:
-            print(f"  Field: {field.name}")
+            print(f"  Field Name: {field.name}")
             print(f"    Type: {field.type}")
             print(f"    Bits: {field.n_bits}")
             print(f"    Comment: {field.comment}")
