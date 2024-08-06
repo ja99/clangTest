@@ -1,6 +1,9 @@
+from pprint import pprint
+
 import clang.cindex
 from dataclasses import dataclass
 from typing import List, Optional
+
 
 @dataclass
 class CField:
@@ -20,14 +23,36 @@ class CStruct:
     line_range: (int, int)
     column_range: (int, int)
 
-def get_comment(node:clang.cindex.Cursor)->str:
-    comment = node.raw_comment or ""
-    return comment.strip().replace('\n', ' ')
 
-def get_ranges(node:clang.cindex.Cursor)->((int, int), (int, int)):
+@dataclass
+class CComment:
+    comment: str
+    line_range: (int, int)
+    column_range: (int, int)
+
+
+def get_comments(file_path:str) -> list[CComment]:
+    index = clang.cindex.Index.create()
+    translation_unit = index.parse(file_path)
+    tokens = translation_unit.cursor.get_tokens()
+    comments = []
+    for token in tokens:
+        if token.kind == clang.cindex.TokenKind.COMMENT:
+            line_range, column_range = get_ranges(token)
+            comment = CComment(
+                comment=token.spelling,
+                line_range=line_range,
+                column_range=column_range
+            )
+            comments.append(comment)
+    return comments
+
+
+def get_ranges(node: clang.cindex.Cursor) -> ((int, int), (int, int)):
     return ((node.extent.start.line, node.extent.end.line), (node.extent.start.column, node.extent.end.column))
 
-def parse_field(field_node:clang.cindex.Cursor)->CField:
+
+def parse_field(field_node: clang.cindex.Cursor) -> CField:
     name = field_node.spelling
     type_name = field_node.type.spelling
     n_bits = None
@@ -40,9 +65,11 @@ def parse_field(field_node:clang.cindex.Cursor)->CField:
 
     line_range, column_range = get_ranges(field_node)
 
-    return CField(name=name, type=type_name, n_bits=n_bits, comment=comment, line_range=line_range, column_range=column_range)
+    return CField(name=name, type=type_name, n_bits=n_bits, comment=comment, line_range=line_range,
+                  column_range=column_range)
 
-def parse_struct(struct_node:clang.cindex.Cursor)->CStruct:
+
+def parse_struct(struct_node: clang.cindex.Cursor) -> CStruct:
     struct_name = struct_node.spelling
     fields = []
 
@@ -56,11 +83,12 @@ def parse_struct(struct_node:clang.cindex.Cursor)->CStruct:
 
     return CStruct(name=struct_name, fields=fields, comment=comment, line_range=line_range, column_range=column_range)
 
-def parse_header_file(filename:str)->list[CStruct]:
+
+def parse_header_file(filename: str) -> list[CStruct]:
     index = clang.cindex.Index.create()
     translation_unit = index.parse(filename)
 
-    structs:list[CStruct] = []
+    structs: list[CStruct] = []
 
     for node in translation_unit.cursor.get_children():
         if node.kind == clang.cindex.CursorKind.STRUCT_DECL:
@@ -68,9 +96,15 @@ def parse_header_file(filename:str)->list[CStruct]:
 
     return structs
 
+
 if __name__ == "__main__":
     # Replace with your actual header file path
     header_file_path = "test_cases/example2.h"
+    comments = get_comments(header_file_path)
+    pprint(comments)
+    exit()
+
+
     structs = parse_header_file(header_file_path)
 
     for struct in structs:

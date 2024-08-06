@@ -12,6 +12,8 @@ def main():
 
     for x in tu.cursor.get_tokens():
         print(x.kind)
+        print(type(x.kind))
+        exit()
         print("  " + srcrangestr(x.extent))
         print("  '" + str(x.spelling) + "'")
 
