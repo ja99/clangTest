@@ -10,6 +10,15 @@ typedef struct {
     int field5;  // 16 bits
 } ExampleStruct1;
 
+/*
+ * The above struct will be packed as follows:
+ * 4 bits for field1
+ * 8 bits for field2
+ * 3 bits for field3
+ * 1 bit for field4
+ * 16 bits for field5
+ * Total: 32 bits (4 bytes)
+ */
 typedef struct {
     unsigned int status : 2;  // 2 bits for status (e.g., 0-3)
     unsigned int errorCode : 6;  // 6 bits for error codes
